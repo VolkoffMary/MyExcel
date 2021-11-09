@@ -15,7 +15,6 @@ namespace MyExcel
         private string exp; //вираз користувача
         private List<string> nextCells = new List<string>(); //комірці, вказані в exp
         private List<string> prevCells = new List<string>(); //комірці, які вказують на цей комірець
-
         public class RecurrenceException : Exception
         {
             public RecurrenceException()
@@ -83,16 +82,17 @@ namespace MyExcel
 
         public void trySetExp(string expression)
         {
+            bool recurrence = false;
             try
             {
                 getDependencies(expression);
                 RecurrenceCheck(this, this);
                 val = Calculator.Evaluate(expression);
                 exp = expression;
-                reEvaluateCellValues(address);
             }
             catch (RecurrenceException e)
             {
+                recurrence = true;
                 string errorMessage = e.Message;
                 DialogResult result = MessageBox.Show(
                 "Вираз створює рекурсивну залежність між значеннями комірців.\n",
@@ -119,6 +119,11 @@ namespace MyExcel
                 "Попередження",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
+            }
+            finally 
+            {
+                if (!recurrence)
+                    reEvaluateCellValues(address);
             }
         }
 
@@ -176,6 +181,7 @@ namespace MyExcel
             {
                 Cell cell = dictionary[cellName];
                 cell.val = Calculator.Evaluate(cell.exp);
+                cell.reEvaluateCellValues(cell.Address);
             }
         }
         public static string ComposeName(int row, int column)

@@ -34,6 +34,8 @@ namespace MyExcel
                 dataGridView.Columns.Add(Name, Name);
             for (int i = 0; i < rows; i++)
                 dataGridView.Rows.Add();
+            foreach (DataGridViewColumn column in dataGridView.Columns)
+                column.SortMode = DataGridViewColumnSortMode.NotSortable;
         }
         private DialogResult clearTableMsg()
         {
@@ -44,6 +46,18 @@ namespace MyExcel
             MessageBoxIcon.Warning);
 
             return result;
+        }
+        private void refreshDataGridView()
+        {
+            for (int i = 0; i < dataGridView.RowCount; i++)
+                for (int j = 0; j < dataGridView.ColumnCount; j++)
+                {
+                    string cellName = Cell.ComposeName(i, j);
+                    if (dictionary.ContainsKey(cellName)) 
+                        dataGridView[j, i].Value = dictionary[cellName].Value;
+                    else
+                        dataGridView[j, i].Value = "";
+                }
         }
         private void clearDataGridView(bool clearDict = true)
         {
@@ -90,16 +104,26 @@ namespace MyExcel
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e) //FormClosingEventArgs
         {
-            DialogResult result = MessageBox.Show(
+            if (dataGridView.RowCount > 0 && dataGridView.ColumnCount > 0)
+            {
+                DialogResult result = MessageBox.Show(
                 "Зберегти таблицю перед закриттям програми?",
                 "Попередження",
                 MessageBoxButtons.YesNoCancel,
                 MessageBoxIcon.Warning);
-
-            if (result == DialogResult.Cancel)
-                e.Cancel = true;
-            else if (result == DialogResult.Yes)
-                fileIO.SaveFile(dataGridView.RowCount, dataGridView.ColumnCount, dictionary);
+                switch (result)
+                {
+                    case DialogResult.Yes:
+                        fileIO.SaveFile(dataGridView.RowCount, dataGridView.ColumnCount, dictionary);
+                        break;
+                    case DialogResult.No:
+                        break;
+                    case DialogResult.Cancel:
+                        e.Cancel = true;
+                        return;
+                    default: break;
+                }
+            }
         }
 
         private void saveCellExp(string name)
@@ -121,7 +145,7 @@ namespace MyExcel
                 {
                     string name = Cell.ComposeName(row, column);
                     saveCellExp(name);
-                    fillDataGridView();
+                    refreshDataGridView();
                 }
                 else
                     MessageBox.Show("Ви не можете змінювати комірці заголовка таблиці.");
@@ -131,10 +155,32 @@ namespace MyExcel
         private void addRowToolStripMenuItem_Click(object sender, EventArgs e)
         {
             dataGridView.Rows.Add();
+
+            int row = dataGridView.RowCount - 1;
+            for (int j = 0; j < dataGridView.ColumnCount; j++)
+            {
+                string cellName = Cell.ComposeName(row, j);
+                if (dictionary.ContainsKey(cellName))
+                    dataGridView[j, row].Value = dictionary[cellName].Value;
+                else
+                    dataGridView[j, row].Value = "";
+            }
         }
         private void addColumnToolStripMenuItem_Click(object sender, EventArgs e)
         {
             dataGridView.Columns.Add(Name, Name);
+            DataGridViewColumn column = dataGridView.Columns[dataGridView.Columns.Count-1];
+            column.SortMode = DataGridViewColumnSortMode.NotSortable;
+
+            int columnId = dataGridView.ColumnCount - 1;
+            for (int i = 0; i < dataGridView.RowCount; i++)
+            {
+                string cellName = Cell.ComposeName(i, columnId);
+                if (dictionary.ContainsKey(cellName))
+                    dataGridView[columnId, i].Value = dictionary[cellName].Value;
+                else
+                    dataGridView[columnId, i].Value = "";
+            }
         }
         private void deleteRowToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -293,7 +339,6 @@ namespace MyExcel
                 }
             createDataGridView();
         }
-
         private void closeToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (dataGridView.RowCount > 0 && dataGridView.ColumnCount > 0)
@@ -313,7 +358,6 @@ namespace MyExcel
                 }
             }
         }
-
         private void helpToolStripMenuItem_Click(object sender, EventArgs e)
         {
             DialogResult result = MessageBox.Show(
@@ -325,7 +369,6 @@ namespace MyExcel
             "\t֍Піднесення до степеня ^\n" +
             "\t֍inc, dec\n");
         }
-
         private void dataGridView_CurrentCellChanged(object sender, EventArgs e)
         {
             int column = dataGridView.CurrentCellAddress.X;
