@@ -57,12 +57,21 @@ namespace MyExcel
         }
         private void fillDataGridView() 
         {
+            int rows = dataGridView.RowCount;
+            int columns = dataGridView.ColumnCount;
             int row;
             int column;
             foreach (string key in dictionary.Keys)
             {
                 Cell.DecomposeName(key, out row, out column);
-                dataGridView[column, row].Value = dictionary[key].Value;
+                Cell cell = dictionary[key];
+                if (row >= rows || column >= columns)
+                {
+                    if (!cell.IsDependantOn)
+                        dictionary.Remove(key);
+                }
+                else
+                    dataGridView[column, row].Value = cell.Value;
             }
         }
 
@@ -135,7 +144,7 @@ namespace MyExcel
                 if (rowHasData(row) == true)
                 {
                     DialogResult result = MessageBox.Show(
-                        "В цьому рядку є дані. Усе одно видалити рядок?",
+                        "В цьому рядку є дані або в таблиці є клітини, що посилаються на клітини цього рядка. Усе одно видалити рядок?",
                         "Попередження",
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Warning);
@@ -171,7 +180,7 @@ namespace MyExcel
                 if (columnHasData(column) == true)
                 {
                     DialogResult result = MessageBox.Show(
-                        "В цьому стовпчику є дані. Усе одно видалити стовпчик?",
+                        "В цьому стовпчику є дані або в таблиці є клітини, що посилаються на клітини цього стовпця. Усе одно видалити стовпчик?",
                         "Попередження",
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Warning);
@@ -260,17 +269,7 @@ namespace MyExcel
                 }
             bool wasOpened = fileIO.OpenFile(out rows, out columns, out dictionary);
             if (wasOpened)
-            {
-                var keys = dictionary.Keys;
-                int row;
-                int column;
-                foreach (string key in keys)
-                {
-                    Cell.DecomposeName(key, out row, out column);
-                    Cell cell = dictionary[key];
-                    if ((row >= rows || column >= columns) && !cell.IsDependantOn)
-                        dictionary.Remove(key);
-                }
+            {   
                 clearDataGridView(false);
                 createDataGridView(rows, columns);
                 fillDataGridView();
